@@ -1,0 +1,53 @@
+name: ML CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  test-build-push:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.11"
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest
+
+    - name: Train ML model
+      run: |
+        python train_model.py
+
+    - name: Run tests
+      run: |
+        pytest
+
+    - name: Build Docker image
+      run: |
+        docker build -t sentiment-analysis .
+
+    - name: Login to GitHub Container Registry
+      if: github.ref == 'refs/heads/main'
+      run: |
+        echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+    - name: Push Docker image to GHCR
+      if: github.ref == 'refs/heads/main'
+      run: |
+        docker tag sentiment-analysis ghcr.io/${{ github.repository_owner }}/sentiment-analysis:latest
+        docker push ghcr.io/${{ github.repository_owner }}/sentiment-analysis:latest

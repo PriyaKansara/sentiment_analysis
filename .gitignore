@@ -1,0 +1,8 @@
+venv/
+__pycache__/
+*.pyc
+.DS_Store
+# Large datasets & models
+*.csv
+*.pkl
+
